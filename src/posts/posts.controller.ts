@@ -1,18 +1,18 @@
 import NotFoundException from '../exceptions/NotFoundException';
 import { Router, Request, Response, NextFunction } from 'express';
 import Controller from 'interfaces/controller.interface';
-import Post from './post.interface';
-import postModel from './post.model';
+import IPost from './post.interface';
 import validationMiddleware from '../middlewares/validation.middleware';
 import CreatePostDto from './post.dto';
 import authMiddleware from '../middlewares/auth.middleware';
 import RequestWithUser from 'interfaces/requestWithUser.interface';
+import { getRepository } from 'typeorm';
+import Post from './post.entity';
 
 class PostsController implements Controller {
   public path = '/posts';
   public router = Router();
-  private post = postModel;
-  private modelName = postModel.modelName;
+  private postRepository = getRepository(Post);
 
   constructor() {
     this.intializeRoutes();
@@ -29,20 +29,19 @@ class PostsController implements Controller {
   }
 
   private getAllPosts = async (request: Request, response: Response) => {
-    const posts = await this.post.find().populate('author', '-password');
+    const posts = await this.postRepository.find({ relations: ['categories'] });
 
     response.send(posts);
   }
 
   private createPost = async (request: RequestWithUser, response: Response) => {
-    const postData: Post = request.body;
+    const postData: IPost = request.body;
 
-    const createdPost = new this.post({
+    const createdPost = this.postRepository.create({
       ...postData,
-      author: request.user._id,
+      author: request.user,
     });
-    const savedPost = await createdPost.save();
-    await savedPost.populate('author', '-password');
+    const savedPost = await this.postRepository.save(createdPost);
 
     response.send(savedPost);
   }
@@ -50,37 +49,39 @@ class PostsController implements Controller {
   private getPostById = async (request: Request, response: Response, next: NextFunction) => {
     const id = request.params.id;
 
-    const post = await this.post.findById(id);
+    const post = await this.postRepository.findOne(id, { relations: ['categories'] });
 
     if (post) {
       response.send(post);
     } else {
-      next(new NotFoundException(this.modelName, id));
+      next(new NotFoundException(Post.name, id));
     }
   }
 
   private modifyPost = async (request: Request, response: Response, next: NextFunction) => {
-    const postData: Post = request.body;
+    const postData: IPost = request.body;
     const { id } = request.params;
 
-    const updatedPost = await this.post.findByIdAndUpdate(id, postData, { new: true });
+    await this.postRepository.update(id, postData);
+    const updatedPost = await this.postRepository.findOne(id);
+
 
     if (updatedPost) {
       response.send(updatedPost);
     } else {
-      next(new NotFoundException(this.modelName, id));
+      next(new NotFoundException(Post.name, id));
     }
   }
 
   private deletePost = async (request: Request, response: Response, next: NextFunction) => {
     const { id } = request.params;
 
-    const deletedPost = await this.post.findByIdAndDelete(id);
+    const deleteResponse = await this.postRepository.delete(id);
 
-    if (deletedPost) {
-      response.send(deletedPost);
+    if (deleteResponse.raw[1]) {
+      response.sendStatus(200);
     } else {
-      next(new NotFoundException(this.modelName, id));
+      next(new NotFoundException(Post.name, id));
     }
   }
 }

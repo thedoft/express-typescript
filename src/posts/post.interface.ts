@@ -1,7 +1,9 @@
-interface Post {
-  author: string;
+import IUser from "users/user.interface";
+
+interface IPost {
+  author: IUser;
   content: string;
   title: string;
 }
 
-export default Post;
+export default IPost;

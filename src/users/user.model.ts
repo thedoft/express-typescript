@@ -1,5 +1,5 @@
 import * as mongoose from 'mongoose';
-import User from './user.interface';
+import IUser from './user.interface';
 
 const addressSchema = new mongoose.Schema({
   country: String,
@@ -14,6 +14,6 @@ const userSchema = new mongoose.Schema({
   address: addressSchema,
 });
 
-const userModel = mongoose.model<User & mongoose.Document>('User', userSchema);
+const userModel = mongoose.model<IUser & mongoose.Document>('User', userSchema);
 
 export default userModel;

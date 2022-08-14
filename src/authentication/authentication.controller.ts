@@ -2,21 +2,22 @@ import Controller from 'interfaces/controller.interface';
 import { Router, Request, Response, NextFunction } from 'express';
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
-import userModel from '../users/user.model';
 import validationMiddleware from '../middlewares/validation.middleware';
 import CreateUserDto from '../users/user.dto';
 import LoginDto from './login.dto';
 import UserWithThatEmailAlreadyExistsException from '../exceptions/UserWithThatEmailAlreadyExistsException';
 import WrongCredentialsException from '../exceptions/WrongCredentialsException';
-import User from 'users/user.interface';
+import IUser from 'users/user.interface';
 import TokenData from 'interfaces/TokenData.interface';
 import DataStoredInToken from 'interfaces/dataStoredInToken.interface';
 import authMiddleware from '../middlewares/auth.middleware';
+import { getRepository } from 'typeorm';
+import User from '../users/user.entity';
 
 class AuthenticationController implements Controller {
   public path = '/auth';
   public router = Router();
-  private user = userModel;
+  private userRepository = getRepository(User);
 
   constructor() {
     this.intializeRoutes();
@@ -32,7 +33,7 @@ class AuthenticationController implements Controller {
     const expiresIn = 60 * 60; // an hour
     const secret = process.env.JWT_SECRET;
     const dataStoredInToken: DataStoredInToken = {
-      _id: user._id,
+      id: user.id,
     };
 
     return {
@@ -46,15 +47,16 @@ class AuthenticationController implements Controller {
     const { email, password } = userData;
 
     if (
-      await this.user.findOne({ email })
+      await this.userRepository.findOne({ email })
     ) {
       next(new UserWithThatEmailAlreadyExistsException(email));
     } else {
       const hashedPassword = await bcrypt.hash(password, 10);
-      const user = await this.user.create({
+      const user = await this.userRepository.create({
         ...userData,
         password: hashedPassword,
       });
+      await this.userRepository.save(user);
 
       user.password = undefined;
       const tokenData = this.createToken(user);
@@ -67,7 +69,7 @@ class AuthenticationController implements Controller {
   private login = async (request: Request, response: Response, next: NextFunction) => {
     const loginData: LoginDto = request.body;
     const { email, password } = loginData;
-    const user = await this.user.findOne({ email });
+    const user = await this.userRepository.findOne({ email });
 
     if (user) {
       const isPasswordMatching = await bcrypt.compare(password, user.password);
