@@ -7,17 +7,17 @@ import CreateUserDto from '../users/user.dto';
 import LoginDto from './login.dto';
 import UserWithThatEmailAlreadyExistsException from '../exceptions/UserWithThatEmailAlreadyExistsException';
 import WrongCredentialsException from '../exceptions/WrongCredentialsException';
-import IUser from 'users/user.interface';
 import TokenData from 'interfaces/TokenData.interface';
 import DataStoredInToken from 'interfaces/dataStoredInToken.interface';
 import authMiddleware from '../middlewares/auth.middleware';
 import { getRepository } from 'typeorm';
 import User from '../users/user.entity';
+import AuthenticationService from './authentication.service';
 
 class AuthenticationController implements Controller {
   public path = '/auth';
   public router = Router();
-  private userRepository = getRepository(User);
+  private authenticationService = new AuthenticationService();
 
   constructor() {
     this.intializeRoutes();
@@ -44,56 +44,33 @@ class AuthenticationController implements Controller {
 
   private register = async (request: Request, response: Response, next: NextFunction) => {
     const userData: CreateUserDto = request.body;
-    const { email, password } = userData;
 
-    if (
-      await this.userRepository.findOne({ email })
-    ) {
-      next(new UserWithThatEmailAlreadyExistsException(email));
-    } else {
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const user = await this.userRepository.create({
-        ...userData,
-        password: hashedPassword,
-      });
-      await this.userRepository.save(user);
+    try {
+      const { user, cookie } = await this.authenticationService.register(userData);
 
-      user.password = undefined;
-      const tokenData = this.createToken(user);
-
-      response.setHeader('Set-Cookie', [this.createCookie(tokenData)]);
+      response.setHeader('Set-Cookie', [cookie]);
       response.send(user);
+    } catch (error: any) {
+      next(error);
     }
   }
 
   private login = async (request: Request, response: Response, next: NextFunction) => {
     const loginData: LoginDto = request.body;
-    const { email, password } = loginData;
-    const user = await this.userRepository.findOne({ email });
 
-    if (user) {
-      const isPasswordMatching = await bcrypt.compare(password, user.password);
-      if (isPasswordMatching) {
-        const tokenData = this.createToken(user);
-        response.setHeader('Set-Cookie', [this.createCookie(tokenData)]);
-
-        user.password = undefined;
-        response.send(user);
-      } else {
-        next(new WrongCredentialsException());
-      }
-    } else {
-      next(new WrongCredentialsException());
+    try {
+      const { user, cookie } = await this.authenticationService.login(loginData);
+      response.setHeader('Set-Cookie', [cookie]);
+      response.send(user);
+    } catch (error) {
+      next(error);
     }
   }
 
   private logout = (request: Request, response: Response) => {
-    response.setHeader('Set-Cookie', [this.createCookie({ token: '', expiresIn: 0 })]);
+    const cookie = this.authenticationService.logout();
+    response.setHeader('Set-Cookie', [cookie]);
     response.sendStatus(200);
-  }
-
-  private createCookie({ token, expiresIn }: TokenData) {
-    return `Authorization=${token}; HttpOnly; Path=/; Max-Age=${expiresIn}`;
   }
 }
 
