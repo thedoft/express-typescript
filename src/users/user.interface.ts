@@ -3,6 +3,7 @@ interface IUser {
   fullName: string;
   email: string;
   password: string;
+  twoFactorAuthenticationCode?: string;
 }
 
 export default IUser;

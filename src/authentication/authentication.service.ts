@@ -1,5 +1,7 @@
 import * as bcrypt from 'bcrypt';
 import * as jwt from 'jsonwebtoken';
+import * as speakeasy from 'speakeasy';
+import * as QRCode from 'qrcode';
 import CreateUserDto from '../users/user.dto';
 import LoginDto from './login.dto';
 import UserWithThatEmailAlreadyExistsException from '../exceptions/UserWithThatEmailAlreadyExistsException';
@@ -8,14 +10,17 @@ import TokenData from 'interfaces/TokenData.interface';
 import DataStoredInToken from 'interfaces/dataStoredInToken.interface';
 import { getRepository } from 'typeorm';
 import User from '../users/user.entity';
+import { Response } from 'express';
+import IUser from 'users/user.interface';
 
 class AuthenticationService {
   private userRepository = getRepository(User);
 
-  private createToken(user: User): TokenData {
+  public createToken(user: IUser, isSecondFactorAuthenticated = false): TokenData {
     const expiresIn = 60 * 60; // an hour
     const secret = process.env.JWT_SECRET;
     const dataStoredInToken: DataStoredInToken = {
+      isSecondFactorAuthenticated,
       id: user.id,
     };
 
@@ -58,6 +63,7 @@ class AuthenticationService {
         const tokenData = this.createToken(user);
         const cookie = this.createCookie(tokenData);
         user.password = undefined;
+        user.twoFactorAuthenticationCode = undefined;
 
         return { user, cookie };
       } else {
@@ -74,6 +80,28 @@ class AuthenticationService {
 
   public createCookie({ token, expiresIn }: TokenData) {
     return `Authorization=${token}; HttpOnly; Path=/; Max-Age=${expiresIn}`;
+  }
+
+  public getTwoFactorAuthenticationCode() {
+    const secretCode = speakeasy.generateSecret({
+      name: process.env.TWO_FACTOR_AUTHENTICATION_APP_NAME,
+    });
+    return {
+      otpauthUrl : secretCode.otpauth_url,
+      base32: secretCode.base32,
+    };
+  }
+
+  public respondWithQRCode(data: string, response: Response) {
+    QRCode.toFileStream(response, data);
+  }
+
+  public verifyTwoFactorAuthenticationCode(twoFactorAuthenticationCode: string, user: IUser) {
+    return speakeasy.totp.verify({
+      secret: user.twoFactorAuthenticationCode,
+      encoding: 'base32',
+      token: twoFactorAuthenticationCode,
+    });
   }
 }
 

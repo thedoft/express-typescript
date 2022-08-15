@@ -25,6 +25,12 @@ class User {
 
   @OneToMany(() => Post, (post: Post) => post.author)
   public posts: Post[];
+
+  @Column({ nullable: true })
+  public twoFactorAuthenticationCode: string;
+
+  @Column({ default: false })
+  isTwoFactorAuthenticationEnabled: boolean;
 }
 
 export default User;
