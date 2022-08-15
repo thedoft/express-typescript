@@ -19,7 +19,6 @@ class App {
   constructor(controllers: Controller[]) {
     this.app = express();
 
-    this.initializeDatabse();
     this.initializeMiddlewares();
     this.initializeControllers(controllers);
     this.initializeErrorHandling()
@@ -40,19 +39,14 @@ class App {
     this.app.use(errorMiddleware);
   }
 
-  private initializeDatabse() {
-    try {
-      mongoose.connect(`mongodb://${MONGO_USER}:${MONGO_PASSWORD}${MONGO_PATH}`);
-    } catch (e: any) {
-      console.error(e);
-      throw new Error(e);
-    }
-  }
-
   public listen() {
     this.app.listen(PORT, () => {
       console.log(`App listening on the port ${PORT}`);
     });
+  }
+
+  public getServer() {
+    return this.app;
   }
 }
 
