@@ -14,7 +14,7 @@ validateEnv();
   try {
     const connection = await createConnection(config);
     await connection.runMigrations();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error while connecting to the database', error);
     return error;
   }

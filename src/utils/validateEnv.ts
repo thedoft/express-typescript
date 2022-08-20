@@ -1,5 +1,5 @@
 import {
-  cleanEnv, str, port
+  cleanEnv, port, str,
 } from 'envalid';
 
 export default function validateEnv() {
