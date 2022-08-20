@@ -1,17 +1,11 @@
 import * as express from 'express';
 import * as bodyParser from 'body-parser';
 import * as cookieParser from 'cookie-parser';
-import * as mongoose from 'mongoose';
 import 'dotenv/config';
 import Controller from 'interfaces/controller.interface';
 import errorMiddleware from './middlewares/error.middleware';
 
-const {
-  PORT,
-  MONGO_USER,
-  MONGO_PASSWORD,
-  MONGO_PATH,
-} = process.env;
+const { PORT } = process.env;
 
 class App {
   public app: express.Application;
