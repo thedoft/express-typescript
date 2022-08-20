@@ -6,12 +6,12 @@ import CreateUserDto from '../users/user.dto';
 import LoginDto from './login.dto';
 import UserWithThatEmailAlreadyExistsException from '../exceptions/UserWithThatEmailAlreadyExistsException';
 import WrongCredentialsException from '../exceptions/WrongCredentialsException';
-import TokenData from 'interfaces/TokenData.interface';
-import DataStoredInToken from 'interfaces/dataStoredInToken.interface';
+import TokenData from '../interfaces/TokenData.interface';
+import DataStoredInToken from '../interfaces/dataStoredInToken.interface';
 import { getRepository } from 'typeorm';
 import User from '../users/user.entity';
 import { Response } from 'express';
-import IUser from 'users/user.interface';
+import IUser from '../users/user.interface';
 
 class AuthenticationService {
   private userRepository = getRepository(User);

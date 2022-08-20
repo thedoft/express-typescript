@@ -1,4 +1,4 @@
-import Controller from 'interfaces/controller.interface';
+import Controller from '../interfaces/controller.interface';
 import { Router, Request, Response, NextFunction } from 'express';
 import validationMiddleware from '../middlewares/validation.middleware';
 import CreateUserDto from '../users/user.dto';

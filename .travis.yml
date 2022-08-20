@@ -3,3 +3,10 @@ node_js:
   - lts/*
 script:
   - "npm run test"
+branches:
+# blocklist
+  except:
+  - legacy
+# safelist
+  only:
+  - master
